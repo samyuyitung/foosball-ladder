@@ -1,0 +1,28 @@
+{
+  "name": "foosbal-ladder",
+  "version": "1.0.0",
+  "description": "A elo based foosball ladder",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syuyitung/foosball-ladder.git"
+  },
+  "keywords": [
+    "elo",
+    "ladder",
+    "foosball"
+  ],
+  "author": "Sam Yuyitung",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "elo-rating": "^1.0.1",
+    "express": "^4.14.0",
+    "pg": "^6.1.0",
+    "request": "^2.75.0",
+    "slackbots": "^0.5.2"
+  }
+}
