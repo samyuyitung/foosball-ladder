@@ -14,8 +14,7 @@ var request = require('request');
 
 
 var botId;
-//var token = process.env.SLACK_API_TOKEN || '';
-var token = 'xoxb-82525632196-wheAV1aCRuezjo2XArkayVT6'
+var token = process.env.SLACK_API_TOKEN || '';
 
 var rtm = new RtmClient(token, {
 	logLevel: 'error',
