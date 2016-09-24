@@ -18,11 +18,10 @@
   "author": "Sam Yuyitung",
   "license": "ISC",
   "dependencies": {
+    "@slack/client": "^3.6.0",
     "body-parser": "^1.15.2",
-    "elo-rating": "^1.0.1",
     "express": "^4.14.0",
     "pg": "^6.1.0",
-    "request": "^2.75.0",
-    "slackbots": "^0.5.2"
+    "request": "^2.75.0"
   }
 }

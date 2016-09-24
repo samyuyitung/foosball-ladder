@@ -1,9 +1,7 @@
 
 var express = require('express');
-// var url = require('url');
-var request = require('request');
 var bodyParser = require('body-parser');
-var reactions = require('./routes/reactions.js');
+var slack = require('./routes/slack.js');
 
 var app = express();
 
@@ -24,7 +22,8 @@ app.use(function(req, res, next) {
     next(); // make sure we go to the next routes and don't stop here
 });
 
-app.use('/', reactions);
+app.use('/', slack);
+
 
 app.listen(port, function() {
 	console.log('Magic happens on port ' + port);
