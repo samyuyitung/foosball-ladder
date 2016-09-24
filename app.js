@@ -2,6 +2,7 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var slack = require('./routes/slack.js');
+var db = require('./routes/db.js');
 
 var app = express();
 
@@ -23,6 +24,7 @@ app.use(function(req, res, next) {
 });
 
 app.use('/', slack);
+app.use('/', db);
 
 
 app.listen(port, function() {

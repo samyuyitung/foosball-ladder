@@ -7,15 +7,8 @@ var CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS;
 var RTM_CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS.RTM;
 var MemoryDataStore = require('@slack/client').MemoryDataStore;
 
-
-//var EloRating = require('elo-rating');
-
-var request = require('request');
-
-
 var botId;
-//var token = process.env.SLACK_API_TOKEN || '';
-var token = 'xoxb-82525632196-wheAV1aCRuezjo2XArkayVT6'
+var token = require('../config.json').slackKey;
 
 var rtm = new RtmClient(token, {
 	logLevel: 'error',
@@ -28,42 +21,45 @@ rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
 	botId = rtmStartData.self.id;
 });
 
+/*
+ * detect when a message is sent,
+ */ 
+
 rtm.on(RTM_EVENTS.MESSAGE, function (message) {
-	text = message.text.toString();
+	text = message.text;
 	//Check if @elo-bot is mentioned
 	if (isToBot(text)) {
 
 		if(messageContains(text, "ladder")){
 			rtm.sendMessage("Ladder", message.channel)
+		} else if(messageContains(text, "new game")){
+			rtm.sendMessage("Starting game", message.channel)
 		}
 	}
 });
 
 /*
- * reaction added to message
+ * detect when a reaction is added to a message
  */ 
 rtm.on(RTM_EVENTS.REACTION_ADDED, function (message) {
-
+	console.log(message);
 	if(isToBot(message.item_user)){
 		console.log(getUserById(message.user) + " did " + message.reaction);
 	}
 });
 
-
-
 /*
  * HELPER FUNCTIONS 
  */
 function isToBot(text){
-	return messageContains(text,botId)
+	return (text.indexOf("@" + botId) == 1);
 }
 
 function messageContains(message, str){
-	return message.includes(str);
+	return message.toLowerCase().includes(str.toLowerCase());
 }
 
 function getUserById(id){
-	console.log(id);
 	return rtm.dataStore.getUserById(id).name;
 }
 
