@@ -1,6 +1,9 @@
 var express = require('express');
 var router = express.Router();
 
+var dbconnector = require('./db.js');
+var game  = require('./game.js');
+
 var RtmClient = require('@slack/client').RtmClient;
 var RTM_EVENTS = require('@slack/client').RTM_EVENTS;
 var CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS;
@@ -23,17 +26,21 @@ rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
 
 /*
  * detect when a message is sent,
- */ 
-
+ */
 rtm.on(RTM_EVENTS.MESSAGE, function (message) {
-	text = message.text;
-	//Check if @elo-bot is mentioned
-	if (isToBot(text)) {
 
-		if(messageContains(text, "ladder")){
-			rtm.sendMessage("Ladder", message.channel)
+	//TODO MAKE IT NOT WORK FOR EDITS no body
+
+	messageText = message.text;
+	//Check if @elo-bot is mentioned first (e.g. @foosbot .. message, NOT message .. @foosbot)
+	if (isToBot(messageText)) {
+		text = messageText.substr(messageText.indexOf(" ") + 1);
+		if(messageContains(text, "add")){	
+			addUser(text, message.user, message.channel);
+		} else if(messageContains(text, "ladder")){
+			rtm.sendMessage("Ladder", message.channel);
 		} else if(messageContains(text, "new game")){
-			rtm.sendMessage("Starting game", message.channel)
+			startGame(text, message.channel);
 		}
 	}
 });
@@ -49,6 +56,40 @@ rtm.on(RTM_EVENTS.REACTION_ADDED, function (message) {
 });
 
 /*
+ * Message functions
+ */
+
+/*
+ * Add new user to the firebase database
+ * Can add by ("me"): adds person who sent message
+ * or by names specified
+ */
+function addUser(text, user, channel) {
+	if(messageContains(text, "me")){
+		dbconnector.addNewUser(user, getUserById(user));
+		rtm.sendMessage("adding " + getUserById(user), channel);
+	} else {
+		var people = text.match(/@(\w+)/g);
+		var users = "";
+		people.forEach(function(id){
+			id = id.substr(1);
+			dbconnector.addNewUser(id, getUserById(id));
+			users += getUserById(id) + ", ";
+		});
+		rtm.sendMessage("Added users: " + users.substr(0, users.length8 - 2), channel);
+	}
+}
+/**
+ * @param  {text} The message sent 
+ * @param  {channel} The slack channel (to send back message)
+ * @return {[type]}
+ */
+function startGame(text, channel){
+
+
+}
+
+/*
  * HELPER FUNCTIONS 
  */
 function isToBot(text){
@@ -56,6 +97,7 @@ function isToBot(text){
 }
 
 function messageContains(message, str){
+	//change to regex match? to prevent sub stringing
 	return message.toLowerCase().includes(str.toLowerCase());
 }
 
