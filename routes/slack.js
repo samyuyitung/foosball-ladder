@@ -35,10 +35,10 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 	//Check if @elo-bot is mentioned first (e.g. @foosbot .. message, NOT message .. @foosbot)
 	if (isToBot(messageText)) {
 		text = messageText.substr(messageText.indexOf(" ") + 1);
-		if(messageContains(text, "add")){	
+		if(messageContains(text, "ladder")){
+			console.log(dbconnector.getLadder());
+		} else if(messageContains(text, "add")){
 			addUser(text, message.user, message.channel);
-		} else if(messageContains(text, "ladder")){
-			rtm.sendMessage("Ladder", message.channel);
 		} else if(messageContains(text, "new game")){
 			startGame(text, message.channel);
 		}
