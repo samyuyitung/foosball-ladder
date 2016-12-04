@@ -243,10 +243,6 @@ function getUserById(id) {
 	return rtm.dataStore.getUserById(id).name;
 }
 
-function getUserIdFromName(id) {
-	return rtm.dataStore.getUserById(id).name;
-}
-
 
 function giphy(term, callback) {
 	request("http://api.giphy.com/v1/gifs/search?q=" + term + "&api_key=dc6zaTOxFJmzC", function(error, response, body) {
