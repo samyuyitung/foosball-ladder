@@ -20,8 +20,10 @@
   "dependencies": {
     "@slack/client": "^3.6.0",
     "body-parser": "^1.15.2",
+    "elo-rating": "^1.0.1",
     "express": "^4.14.0",
     "firebase": "^3.4.0",
-    "request": "^2.75.0"
+    "request": "^2.79.0",
+    "shortid": "^2.2.6"
   }
 }
