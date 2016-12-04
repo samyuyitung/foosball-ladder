@@ -181,8 +181,9 @@ function isChallengeMessage(messageId, userId, channel) {
 
 function endGame(text, user, channel) {
 	score = gameManager.parseScore(text, user);
+
 	if (score) {
-		gameManager.endGame(score, user, function(str){
+		gameManager.endGame(score, user, function(str) {
 			rtm.sendMessage(str, channel);
 		})
 	} else
@@ -217,10 +218,7 @@ function showStats(text, user, channel) {
 		person = text.match(re)[1];
 	}
 	dbconnector.getProfile(person, function(data) {
-		str = "Elo: " + data.elo + "\n"
-			+ "Record: " + data.wins + " - " + data.losses + "\n"
-			+ "Goal differnetial: " + (data.goalsFor - data.goalsAgainst) + "\n"
-			+ "Current Streak: " + data.streak;
+		str = "Elo: " + data.elo + "\n" + "Record: " + data.wins + " - " + data.losses + "\n" + "Goal differnetial: " + (data.goalsFor - data.goalsAgainst) + "\n" + "Current Streak: " + data.streak + "\n" + "Last played: " + data.lastPlayed;
 		rtm.sendMessage(str, channel);
 	})
 }

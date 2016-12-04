@@ -97,8 +97,12 @@ function setNewStreak(current, win) {
 	return newStreak;
 }
 
+function getWinner(score) {
+	return score.team1 > score.team2 ? 1 : 2;
+}
+
 function updateElos(winner, teams) {
-	winner = score.team1 > score.team2 ? 1 : 2;
+	winner = getWinner(score);
 	if (winner == 1) {
 		winners = teams.team1;
 		losers = teams.team2;
@@ -106,21 +110,23 @@ function updateElos(winner, teams) {
 		winners = teams.team2;
 		losers = teams.team1;
 	}
-	console.log(winners);
 	loseAvg = getAverage(losers);
 	winAvg = getAverage(winners);
 	winners.forEach(function(player) {
 		player.elo = EloRating.calculate(player.elo, loseAvg).playerRating;
 		player.gamesPlayed++;
 		player.wins++;
+		player.lastPlayed = Date.now();
 		player.goalsFor += score.team1 > score.team2 ? score.team1 : score.team2;
 		player.goalsAgainst += score.team1 < score.team2 ? score.team1 : score.team2;
 		player.streak = setNewStreak(player.streak, true);
+		player.shutouts += isShutout(score) ? 1 : 0;
 	});
 	losers.forEach(function(player) {
 		player.elo = EloRating.calculate(winAvg, player.elo).opponentRating;
 		player.gamesPlayed++;
 		player.losses++;
+		player.lastPlayed = Date.now();
 		player.goalsFor += score.team1 < score.team2 ? score.team1 : score.team2;
 		player.goalsAgainst += score.team1 > score.team2 ? score.team1 : score.team2;
 		player.streak = setNewStreak(player.streak, false);
@@ -129,6 +135,20 @@ function updateElos(winner, teams) {
 	return winners.concat(losers);
 }
 
+function getNamesFromTeam(game, teamNum) {
+	var str = "";
+	var team = game.team1;
+	if (teamNum == 2)
+		team = game.team2;
+	team.forEach(function(player) {
+		str += player.name + " ";
+	});
+	return str;
+}
+
+function isShutout(score) {
+	return score.team1 == 0 || score.team2 == 0;
+}
 
 module.exports = {
 
@@ -179,7 +199,6 @@ module.exports = {
 		if (currentPlayers.length > 0) {
 			return currentPlayers + " are playing rn... Huh?!";
 		}
-
 		potentialGames.push(data);
 	},
 
@@ -217,15 +236,21 @@ module.exports = {
 		return null;
 	},
 
-	endGame: function(score, player) {
+	endGame: function(score, player, callback) {
 		var game = getGameByPlayer(player);
 		if (!game)
-			return false;
-		dbconnector.updateRatings(updateElos(score, splitArrayByTeam(game)));
-		game.team1.concat(match.team2).forEach(function(player) {
+			return null;
+		var players = updateElos(score, splitArrayByTeam(game))
+		dbconnector.updateRatings(players);
+		players.forEach(function(player) {
 			playersGames.splice(playersGames.indexOf(player), 1);
 		});
-		return true;
+		var str = "";
+		if (isShutout(score))
+			str += getNamesFromTeam(game, getWinner(score)) + "GOT A SHUTOUT AHAHAHA \nhttp://giphy.com/gifs/reaction-rap-battle-wHAXQpoDZ7WEM"
+		else
+			str += getNamesFromTeam(game, getWinner(score)) + "Wins!!!"
+		callback(str);
 	},
 
 	getCurrentGames: function() {

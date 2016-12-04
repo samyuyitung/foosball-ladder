@@ -18,7 +18,9 @@ module.exports = {
 					gamesPlayed: 0,
 					goalsFor: 0,
 					goalsAgainst: 0,
-					streak: 'W0'
+					lastPlayed: 0,
+					streak: 'W0',
+					shutouts: 0
 				});
 				message(true);
 			} else
