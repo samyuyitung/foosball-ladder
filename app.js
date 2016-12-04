@@ -1,6 +1,7 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var slack = require('./routes/slack.js');
+var schedule = require('node-schedule');
 
 var app = express();
 
@@ -20,6 +21,13 @@ app.use(function(req, res, next) {
 	res.setHeader('Access-Control-Allow-Credentials', false);
 	next(); // make sure we go to the next routes and don't stop here
 });
+
+var j = schedule.scheduleJob({hour: 00, minute: 00}, function(){
+    walk.on('dir', function (dir, stat) {
+       uploadDir.push(dir);
+    });
+});
+
 
 app.use('/', slack);
 
