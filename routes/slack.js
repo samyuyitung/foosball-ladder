@@ -218,7 +218,11 @@ function showStats(text, user, channel) {
 		person = text.match(re)[1];
 	}
 	dbconnector.getProfile(person, function(data) {
-		str = "Elo: " + data.elo + "\n" + "Record: " + data.wins + " - " + data.losses + "\n" + "Goal differnetial: " + (data.goalsFor - data.goalsAgainst) + "\n" + "Current Streak: " + data.streak + "\n" + "Last played: " + data.lastPlayed;
+		date = new Date(Number(data.lastPlayed - 18000000)).toISOString()
+		.replace(/T/, ' ') // replace T with a space
+		.replace(/\..+/, '')
+		str = "Elo: " + data.elo + "\n" + "Record: " + data.wins + " - " + data.losses + "\n" + "Goal differnetial: " + (data.goalsFor - data.goalsAgainst) + "\n" + "Current Streak: " + data.streak + "\n" +
+			"Last played: " + date;
 		rtm.sendMessage(str, channel);
 	})
 }
