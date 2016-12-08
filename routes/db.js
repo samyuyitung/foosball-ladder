@@ -14,7 +14,6 @@ module.exports = {
 					elo: 1500,
 					wins: 0,
 					losses: 0,
-					gamesPlayed: 0,
 					goalsFor: 0,
 					goalsAgainst: 0,
 					lastPlayed: 0,

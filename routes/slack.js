@@ -55,15 +55,16 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
 	}
 });
 
+//TODO: SMART EMOJI
+
 /*
  * detect when a reaction is added to a message
  */
 rtm.on(RTM_EVENTS.REACTION_ADDED, function(message) {
-	if(message.reaction === '+1' || message.reaction == '-1' )
+	if (message.reaction === '+1' || message.reaction == '-1') {
 		if (isChallengeMessage(message.item.ts, message.user, message.item.channel)) {
 			return;
 		} else if (isMatchConfirmation(message.item.ts, message.user, message.item.channel)) {
-			console.log("confirm")
 			return;
 		}
 	}
@@ -161,7 +162,7 @@ function startGame(text, userId, messageId, channel) {
 				if (player.userId !== userId)
 					playerString += mentionUser(player.userId);
 			});
-			rtm.sendMessage("Waiting for " + playerString + " to react to your message", channel);
+			rtm.sendMessage("Waiting for " + playerString + "to react to your message", channel);
 		} else {
 			rtm.sendMessage(str, channel);
 		}
@@ -235,7 +236,8 @@ function showLadder(channel) {
 			str += rank++ + ". " + user.name + " - " + user.elo + "\n";
 		});
 		if (str === "")
-			str = "Ain't no people here!!!!"
+			str = "The ladder is empty, you need to play at least 1 game to be on the ladder\n" +
+			"Psst, You should add yourself with `" + mentionUser(botId) + "add me`"
 		rtm.sendMessage(str, channel);
 	});
 }
@@ -248,14 +250,18 @@ function showStats(text, user, channel) {
 		person = text.match(re)[1];
 	}
 	dbconnector.getProfile(person, function(data) {
-		date = new Date(Number(data.lastPlayed - 18000000)).toISOString()
-			.replace(/T/, ' ') // replace T with a space
-			.replace(/\..+/, '')
-		str = "Elo: " + data.elo + "\n" +
-			"Record: " + data.wins + " - " + data.losses + "\n" +
-			"Goal differnetial: " + (data.goalsFor - data.goalsAgainst) + "\n" +
-			"Current Streak: " + data.streak + "\n" +
-			"Last played: " + date;
+		var str = ""
+		if (data) {
+			var date = new Date(Number(data.lastPlayed - 18000000)).toISOString()
+				.replace(/T/, ' ') // replace T with a space
+				.replace(/\..+/, '')
+			str = "Elo: " + data.elo + "\n" +
+				"Record: " + data.wins + " - " + data.losses + "\n" +
+				"Goal differnetial: " + (data.goalsFor - data.goalsAgainst) + "\n" +
+				"Current Streak: " + data.streak + "\n" +
+				"Last played: " + date;
+		} else
+			str = "What are you doing? You don't exist, add yourself with `" + mentionUser(botId) + "add me`"
 		rtm.sendMessage(str, channel);
 	})
 }
@@ -267,12 +273,10 @@ function isToBot(text) {
 }
 
 function messageContains(message, str) {
-	//change to regex match? to prevent sub stringing
 	return message.toLowerCase().includes(str.toLowerCase());
 }
 
 function startsWith(message, str) {
-	//change to regex match? to prevent sub stringing
 	return message.toLowerCase().indexOf(str.toLowerCase()) == 0;
 }
 

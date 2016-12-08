@@ -126,8 +126,6 @@ function updateElos(score, teams) {
 		player.goalsAgainst += score.team1 < score.team2 ? score.team1 : score.team2;
 		player.streak = setNewStreak(player.streak, true);
 		player.shutouts += isShutout(score) ? 1 : 0;
-
-		player.gamesPlayed++;
 		player.lastPlayed = Date.now();
 	});
 	losers.forEach(function(player) {
@@ -136,8 +134,6 @@ function updateElos(score, teams) {
 		player.goalsFor += score.team1 < score.team2 ? score.team1 : score.team2;
 		player.goalsAgainst += score.team1 > score.team2 ? score.team1 : score.team2;
 		player.streak = setNewStreak(player.streak, false);
-
-		player.gamesPlayed++;
 		player.lastPlayed = Date.now();
 	});
 	//GOALS ???????
