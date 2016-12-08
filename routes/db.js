@@ -6,7 +6,6 @@ ref = firebase.database().ref('users/');
 module.exports = {
 
 	addNewUser: function(userId, name, message) {
-		//CHECK IF EXISTS FIRST
 		ref.once('value', function(snapshot) {
 			if (!snapshot.hasChild(userId)) {
 				ref.child(userId).set({
@@ -36,6 +35,7 @@ module.exports = {
 		var ladder = [];
 		ref.once('value', function(snapshot) {
 			snapshot.forEach(function(data) {
+				if(data.val().wins + data.val().losses != 0)
 				ladder.push({
 					name: data.val().username,
 					elo: data.val().elo
@@ -53,6 +53,7 @@ module.exports = {
 			callback(snapshot.val());
 		});
 	},
+
 	updateRatings: function(players) {
 		players.forEach(function(player) {
 			ref.once('value', function(snapshot) {

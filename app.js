@@ -32,5 +32,5 @@ var j = schedule.scheduleJob({hour: 00, minute: 00}, function(){
 app.use('/', slack);
 
 app.listen(port, function() {
-	console.log('Magic happens on port ' + port);
+	console.log('Running on port ' + port);
 });

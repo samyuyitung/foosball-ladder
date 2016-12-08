@@ -36,8 +36,8 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
 		//Check if bot is mentioned first (e.g. @foosbot .. message, NOT message .. @foosbot)
 		if (isToBot(messageText)) {
 			text = messageText.substr(botId.length + 4).trim();
-			if (startsWith(text, "ladder")) {
-				getLadder(message.channel);
+			if (startsWith(text, 'help')) {
+				helpMessage(message.channel);
 			} else if (startsWith(text, "add")) {
 				addUser(text, message.user, message.channel);
 			} else if (startsWith(text, "remove")) {
@@ -45,10 +45,11 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
 			} else if (messageContains(text, "challenge")) {
 				startGame(text, message.user, message.ts, message.channel);
 			} else if (startsWith(text, "final score")) {
-				endGame(text, message.user, message.channel);
+				endGame(text, message.user, message.ts, message.channel);
 			} else if (startsWith(text, "show")) {
 				show(text, message.user, message.channel);
-			}
+			} else
+				rtm.sendMessage("I dont know what you are trying to say, ask me help to learn what I can do", message.channel);
 		} else
 			console.log(messageText);
 	}
@@ -58,30 +59,47 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
  * detect when a reaction is added to a message
  */
 rtm.on(RTM_EVENTS.REACTION_ADDED, function(message) {
-	isChallengeMessage(message.item.ts, message.user, message.item.channel)
+	if(message.reaction === '+1' || message.reaction == '-1' )
+		if (isChallengeMessage(message.item.ts, message.user, message.item.channel)) {
+			return;
+		} else if (isMatchConfirmation(message.item.ts, message.user, message.item.channel)) {
+			console.log("confirm")
+			return;
+		}
+	}
 });
 
 /*
  * Message functions
  */
 
-/*
- * Add new user to the firebase database
- * Can add by ("me"): adds person who sent message
- * or by names specified
- */
+function helpMessage(channel) {
+	var botName = "@" + getUserById(botId);
+	var str = "Hi I'm Foosbot, Here is what I can do:\n" +
+		"`" + botName + " add me` - add yourself to the ladder\n" +
+		"`" + botName + " I challenge <person>` - Challenge someone to a 1 on 1 match\n" +
+		"`" + botName + " me and <partner> challenge <opponent1> and <opponent2>` - Challenge others to a team game\n" +
+		"`" + botName + " Final score # : #` - Report the final score of a match after it has been played\n" +
+		"`" + botName + " show ladder` - Show the elo ladder\n" +
+		"`" + botName + " show my stats` - Show your stats\n" +
+		"`" + botName + " show <person> stats` - Show your stats\n" +
+		"`" + botName + " remove me` - remove yourself to the ladder\n"
+	rtm.sendMessage(str, channel);
+	giphy("help", function(data) {
+		rtm.sendMessage(" " + data, channel);
+	});
+}
+
 function addUser(text, user, channel) {
 	if (messageContains(text, "add me")) {
-		// Check if they already exist
 		var callback = function(added) {
 			if (added) {
-				rtm.sendMessage("adding @" + getUserById(user), channel);
-
+				rtm.sendMessage("adding " + mentionUser(user), channel);
 				giphy("welcome", function(data) {
 					rtm.sendMessage(data, channel);
 				});
 			} else {
-				rtm.sendMessage("@" + getUserById(user) + " already exists", channel);
+				rtm.sendMessage(mentionUser(user) + " already exists", channel);
 			}
 		}
 		dbconnector.addNewUser(user, getUserById(user), callback);
@@ -95,19 +113,15 @@ function addUser(text, user, channel) {
 function removeUser(text, user, channel) {
 	if (messageContains(text, "remove me")) {
 		dbconnector.removeUser(user);
-		rtm.sendMessage("removed @" + getUserById(user) + " from the ladder", channel);
+		rtm.sendMessage("removed " + mentionUser(user) + " from the ladder", channel);
 		giphy("bye bye", function(data) {
 			rtm.sendMessage(" " + data, channel);
 		});
 	} else
-		rtm.sendMessage("I cant remove anyone but you type `@" + getUserById(botId) + " remove me` to drop", channel);
+		rtm.sendMessage("I cant remove anyone but you type `@" + getUserById(botId) + " remove me` to drop out", channel);
 
 }
-/**
- * @param  {text} The message sent 
- * @param  {channel} The slack channel (to send back message)
- * @return {[type]}
- */
+
 function startGame(text, userId, messageId, channel) {
 	if (startsWith(text, "I") || startsWith(text, "me")) {
 		var re = /@([\w]+)/g;
@@ -145,14 +159,14 @@ function startGame(text, userId, messageId, channel) {
 			playerString = "";
 			team1.concat(team2).forEach(function(player) {
 				if (player.userId !== userId)
-					playerString += "<@" + player.userId + "> ";
+					playerString += mentionUser(player.userId);
 			});
-			rtm.sendMessage("Waiting for " + playerString + " to react toy your message", channel);
+			rtm.sendMessage("Waiting for " + playerString + " to react to your message", channel);
 		} else {
 			rtm.sendMessage(str, channel);
 		}
 	} else {
-		rtm.sendMessage("To use enter `[I/me and <user>] challenge <people>", channel);
+		rtm.sendMessage("To use enter `[I/me and <user>] challenge <opponent1> <opponent2>", channel);
 	}
 }
 
@@ -174,25 +188,46 @@ function isChallengeMessage(messageId, userId, channel) {
 				rtm.sendMessage(" " + data, channel);
 			});
 			rtm.sendMessage("Starting: " + team1msg + "vs. " + team2msg, channel);
-			rtm.sendMessage("Msg me again when the game is over with the score", channel);
+			rtm.sendMessage("Message me again when the game is over with the score", channel);
 		}
+		return true;
 	}
+	return false;
 }
 
-function endGame(text, user, channel) {
-	score = gameManager.parseScore(text, user);
-
+function endGame(text, user, messageId, channel) {
+	var score = gameManager.parseScore(text, user);
 	if (score) {
-		gameManager.endGame(score, user, function(str) {
+		gameManager.endGame(score, user, messageId, function(str) {
 			rtm.sendMessage(str, channel);
 		})
 	} else
 		rtm.sendMessage("What was the score", channel);
-
 }
 
 
-function getLadder(channel) {
+function isMatchConfirmation(messageId, userId, channel) {
+	if (gameManager.isFinalScoreConfirmation(messageId, userId)) {
+		match = gameManager.allConfirmFinalScore(messageId);
+		if (match) {
+			str = gameManager.updateStats(messageId, function(str) {
+				rtm.sendMessage(str, channel);
+			});
+		}
+		return true;
+	}
+	return false;
+}
+
+function show(text, user, channel) {
+	if (text.toLowerCase().endsWith(" stats")) {
+		showStats(text, user, channel);
+	} else if (text.toLowerCase().endsWith(" ladder")) {
+		showLadder(channel);
+	}
+}
+
+function showLadder(channel) {
 	dbconnector.getLadder(function(ladder) {
 		var str = "";
 		var rank = 1;
@@ -205,11 +240,6 @@ function getLadder(channel) {
 	});
 }
 
-function show(text, user, channel) {
-	if (text.endsWith(" stats")) {
-		showStats(text, user, channel);
-	}
-}
 
 function showStats(text, user, channel) {
 	var person = user;
@@ -219,9 +249,12 @@ function showStats(text, user, channel) {
 	}
 	dbconnector.getProfile(person, function(data) {
 		date = new Date(Number(data.lastPlayed - 18000000)).toISOString()
-		.replace(/T/, ' ') // replace T with a space
-		.replace(/\..+/, '')
-		str = "Elo: " + data.elo + "\n" + "Record: " + data.wins + " - " + data.losses + "\n" + "Goal differnetial: " + (data.goalsFor - data.goalsAgainst) + "\n" + "Current Streak: " + data.streak + "\n" +
+			.replace(/T/, ' ') // replace T with a space
+			.replace(/\..+/, '')
+		str = "Elo: " + data.elo + "\n" +
+			"Record: " + data.wins + " - " + data.losses + "\n" +
+			"Goal differnetial: " + (data.goalsFor - data.goalsAgainst) + "\n" +
+			"Current Streak: " + data.streak + "\n" +
 			"Last played: " + date;
 		rtm.sendMessage(str, channel);
 	})
@@ -244,7 +277,13 @@ function startsWith(message, str) {
 }
 
 function getUserById(id) {
-	return rtm.dataStore.getUserById(id).name;
+	if (rtm.dataStore.getUserById(id))
+		return rtm.dataStore.getUserById(id).name;
+	return null;
+}
+
+function mentionUser(userId) {
+	return "<@" + userId + "> ";
 }
 
 

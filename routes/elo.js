@@ -1,1 +1,0 @@
-var eloRating = require('elo-rating');

@@ -1,0 +1,8 @@
+{
+	"slackKey": "<slack bot key>",
+	"firebase": {
+		"apiKey": "<firebase app key>",
+		"authDomain": "<Firebase project name>.firebaseapp.com",
+		"databaseURL": "<firebase project name>.firebaseio.com"
+	}
+}

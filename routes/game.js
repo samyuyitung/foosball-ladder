@@ -6,8 +6,8 @@ var games = [];
 var playersGames = [];
 var firebaseProfiles = [];
 
-var potentialGames = []
-
+var potentialGames = [];
+var endedGames = [];
 
 function isPlaying(user) {
 	for (var i = 0; i < playersGames.length; i++) {
@@ -37,6 +37,13 @@ function getGameByPlayer(player) {
 			return getGameById(playersGames[i].gameId);
 		}
 	}
+}
+
+function getEndedGameById(id) {
+	for (var i = 0; i < endedGames.length; i++)
+		if (endedGames[i].messageId === id)
+			return endedGames[i];
+	return null;
 }
 
 function getTeam(id, game) {
@@ -101,8 +108,8 @@ function getWinner(score) {
 	return score.team1 > score.team2 ? 1 : 2;
 }
 
-function updateElos(winner, teams) {
-	winner = getWinner(score);
+function updateElos(score, teams) {
+	var winner = getWinner(score);
 	if (winner == 1) {
 		winners = teams.team1;
 		losers = teams.team2;
@@ -110,26 +117,28 @@ function updateElos(winner, teams) {
 		winners = teams.team2;
 		losers = teams.team1;
 	}
-	loseAvg = getAverage(losers);
-	winAvg = getAverage(winners);
+	var loseAvg = getAverage(losers);
+	var winAvg = getAverage(winners);
 	winners.forEach(function(player) {
 		player.elo = EloRating.calculate(player.elo, loseAvg).playerRating;
-		player.gamesPlayed++;
 		player.wins++;
-		player.lastPlayed = Date.now();
 		player.goalsFor += score.team1 > score.team2 ? score.team1 : score.team2;
 		player.goalsAgainst += score.team1 < score.team2 ? score.team1 : score.team2;
 		player.streak = setNewStreak(player.streak, true);
 		player.shutouts += isShutout(score) ? 1 : 0;
+
+		player.gamesPlayed++;
+		player.lastPlayed = Date.now();
 	});
 	losers.forEach(function(player) {
 		player.elo = EloRating.calculate(winAvg, player.elo).opponentRating;
-		player.gamesPlayed++;
 		player.losses++;
-		player.lastPlayed = Date.now();
 		player.goalsFor += score.team1 < score.team2 ? score.team1 : score.team2;
 		player.goalsAgainst += score.team1 > score.team2 ? score.team1 : score.team2;
 		player.streak = setNewStreak(player.streak, false);
+
+		player.gamesPlayed++;
+		player.lastPlayed = Date.now();
 	});
 	//GOALS ???????
 	return winners.concat(losers);
@@ -141,7 +150,7 @@ function getNamesFromTeam(game, teamNum) {
 	if (teamNum == 2)
 		team = game.team2;
 	team.forEach(function(player) {
-		str += player.name + " ";
+		str += "@<" + player.userId + "> ";
 	});
 	return str;
 }
@@ -151,30 +160,29 @@ function isShutout(score) {
 }
 
 module.exports = {
-
 	parseScore(text, sender) {
 		var game = getGameByPlayer(sender);
 		var score = {};
-		var scoreString = text.match(/(\d+\s*:\s*\d+)/g) ? text.match(/(\d+\s*:\s*\d+)/g)[0] : null;
+		// digit whitespace? (not digit, letter, _ or whitespace) whitespace? digit 
+		var re = /(\d+\s*[^\w]+\s*\d+)/g;
+		var scoreString = re.test(text) ? text.match(re)[0] : null;
 		if (!scoreString)
 			return;
+		var p1re = /(\d+)\s*[^\w]+/
+		var p2re = /[^\w]+\s*(\d+)/
 		if (getTeam(sender, game) == 1) {
-			score.team1 = parseInt(scoreString.match(/(\d+)\s*:/)[1]);
-			score.team2 = parseInt(scoreString.match(/:\s*(\d+)/)[1]);
+			score.team1 = parseInt(scoreString.match(p1re)[1]);
+			score.team2 = parseInt(scoreString.match(p2re)[1]);
 		} else {
-			score.team2 = parseInt(scoreString.match(/(\d+)\s*:/)[1]);
-			score.team1 = parseInt(scoreString.match(/:\s*(\d+)/)[1]);
+			score.team2 = parseInt(scoreString.match(p1re)[1]);
+			score.team1 = parseInt(scoreString.match(p2re)[1]);
 		}
 		return score;
 	},
 
 	startGame: function(t1, t2) {
-		//Prevent person from playing 2 games at the same time
-		allPlayers = t1.concat(t2);
-
 		var id = shortid.generate();
-
-		allPlayers.forEach(function(player) {
+		t1.concat(t2).forEach(function(player) {
 			player.gameId = id;
 			playersGames.push(player);
 			dbconnector.getProfile(player.userId, function(snapshot) {
@@ -197,7 +205,7 @@ module.exports = {
 			}
 		});
 		if (currentPlayers.length > 0) {
-			return currentPlayers + " are playing rn... Huh?!";
+			return currentPlayers + " are playing right now... Huh?!";
 		}
 		potentialGames.push(data);
 	},
@@ -236,20 +244,80 @@ module.exports = {
 		return null;
 	},
 
-	endGame: function(score, player, callback) {
-		var game = getGameByPlayer(player);
+	endGame: function(score, playerId, messageId, callback) {
+		var game = getGameByPlayer(playerId);
+
 		if (!game)
 			return null;
-		var players = updateElos(score, splitArrayByTeam(game))
+		if (getWinner(score) == 1) {
+			scoreString = score.team1 + " - " + score.team2
+		} else {
+			scoreString = score.team2 + " - " + score.team1
+		}
+		game.team1.concat(game.team2).forEach(function(player) {
+			if (player.userId !== playerId)
+				player.confirm = false;
+		});
+
+		str = "By my calculations, " + getNamesFromTeam(game, getWinner(score)) + "won " + scoreString + "\n" +
+			"To confirm the score all players must react to his message with a :thumbsup:";
+		endedGames.push({
+			messageId: messageId,
+			gameId: game.gameId,
+			team1: game.team1,
+			team2: game.team2,
+			score: score
+		})
+		callback(str)
+	},
+
+	isFinalScoreConfirmation: function(messageId, userId) {
+		var game = getEndedGameById(messageId);
+		var found = false;
+		if (game) {
+			game.team1.concat(game.team2).forEach(function(player) {
+				if (player.userId === userId) {
+					player.confirm = true;
+					found = true;
+					return;
+				}
+			});
+		}
+		return found;
+	},
+
+	allConfirmFinalScore: function(messageId) {
+		var game = getEndedGameById(messageId);
+		if (game) {
+			var ye = true;
+			game.team1.concat(game.team2).forEach(function(player) {
+				if (!player.confirm) {
+					ye = false;
+					return;
+				}
+			});
+			if (ye) {
+				return match;
+			}
+			return null;
+		}
+		return null;
+	},
+
+	updateStats: function(messageId, callback) {
+		var game = getEndedGameById(messageId);
+		var players = updateElos(game.score, splitArrayByTeam(game))
 		dbconnector.updateRatings(players);
-		players.forEach(function(player) {
+
+		game.team1.concat(game.team2).forEach(function(player) {
 			playersGames.splice(playersGames.indexOf(player), 1);
 		});
+		endedGames.splice(endedGames.indexOf(match), 1);
 		var str = "";
-		if (isShutout(score))
-			str += getNamesFromTeam(game, getWinner(score)) + "GOT A SHUTOUT AHAHAHA \nhttp://giphy.com/gifs/reaction-rap-battle-wHAXQpoDZ7WEM"
+		if (isShutout(game.score))
+			str += getNamesFromTeam(game, getWinner(game.score)) + "GOT A SHUTOUT AHAHAHA \nhttp://giphy.com/gifs/reaction-rap-battle-wHAXQpoDZ7WEM"
 		else
-			str += getNamesFromTeam(game, getWinner(score)) + "Wins!!!"
+			str += getNamesFromTeam(game, getWinner(game.score)) + "Wins!!!"
 		callback(str);
 	},
 
