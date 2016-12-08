@@ -12,7 +12,7 @@ var RTM_CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS.RTM;
 var MemoryDataStore = require('@slack/client').MemoryDataStore;
 
 var botId;
-var token = require('../config.json').slackKey;
+var token = process.env.SLACK_KEY || require('../config.json').slackKey;
 
 var rtm = new RtmClient(token, {
 	logLevel: 'error',

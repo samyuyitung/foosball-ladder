@@ -1,5 +1,11 @@
 var firebase = require("firebase");
-firebase.initializeApp(require('../config.json').firebase);
+
+var config = require('../config.json').firebase || {
+		"apiKey": process.env.FIREBASE_API_KEY,
+		"authDomain": process.env.FIREBASE_PROJECT_ID,
+		"databaseURL": process.env.FIREBASE_DATEBASE_NAME
+	}
+firebase.initializeApp(config);
 
 
 ref = firebase.database().ref('users/');
