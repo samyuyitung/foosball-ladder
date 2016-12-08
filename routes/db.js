@@ -1,10 +1,13 @@
 var firebase = require("firebase");
+var fs = require('fs');
+var config = {
+	"apiKey": process.env.FIREBASE_API_KEY,
+	"authDomain": process.env.FIREBASE_PROJECT_ID,
+	"databaseURL": process.env.FIREBASE_DATEBASE_NAME
+}
+if (fs.existsSync('../config.json'))
+	config = require('../config.json').firebase
 
-var config = require('../config.json').firebase || {
-		"apiKey": process.env.FIREBASE_API_KEY,
-		"authDomain": process.env.FIREBASE_PROJECT_ID,
-		"databaseURL": process.env.FIREBASE_DATEBASE_NAME
-	}
 firebase.initializeApp(config);
 
 
@@ -40,11 +43,11 @@ module.exports = {
 		var ladder = [];
 		ref.once('value', function(snapshot) {
 			snapshot.forEach(function(data) {
-				if(data.val().wins + data.val().losses != 0)
-				ladder.push({
-					name: data.val().username,
-					elo: data.val().elo
-				});
+				if (data.val().wins + data.val().losses != 0)
+					ladder.push({
+						name: data.val().username,
+						elo: data.val().elo
+					});
 			});
 			ladder.sort(function(a, b) {
 				return a.elo - b.elo;
